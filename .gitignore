@@ -1,0 +1,14 @@
+# Fichiers temporaires
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Configuration locale et secrets
+.env
+.env.*
+!.env.example
+
+# Sauvegardes
+*.bak
+*.backup
