@@ -3,6 +3,8 @@
 *.tmp
 .DS_Store
 Thumbs.db
+node_modules/
+dist/
 
 # Configuration locale et secrets
 .env
