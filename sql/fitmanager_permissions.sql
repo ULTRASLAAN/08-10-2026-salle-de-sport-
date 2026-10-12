@@ -32,7 +32,8 @@ SELECT
     COUNT(*)::INTEGER AS total_paiements,
     COUNT(*) FILTER (WHERE statut = 'paye')::INTEGER AS paiements_valides,
     COUNT(*) FILTER (WHERE statut = 'en_attente')::INTEGER AS paiements_en_attente,
-    COALESCE(SUM(montant) FILTER (WHERE statut = 'paye'), 0)::NUMERIC(12,2) AS montant_encaisse;
+    COALESCE(SUM(montant) FILTER (WHERE statut = 'paye'), 0)::NUMERIC(12,2) AS montant_encaisse
+FROM paiements;
 
 CREATE OR REPLACE FUNCTION fitmanager_annuler_reservation(p_reservation_id INTEGER)
 RETURNS VOID

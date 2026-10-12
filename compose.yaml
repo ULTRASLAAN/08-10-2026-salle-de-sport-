@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PG_DATABASE:-salle_sport}
+      POSTGRES_USER: fitmanager_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitmanager-local-dev}
+      PG_ACCUEIL_PASSWORD: ${PG_ACCUEIL_PASSWORD:-AccueilDemo2026!}
+      PG_COMPTA_PASSWORD: ${PG_COMPTA_PASSWORD:-ComptaDemo2026!}
+    ports:
+      - "127.0.0.1:${PG_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./projet.sql:/docker-entrypoint-initdb.d/01-projet.sql:ro
+      - ./sql/fitmanager_permissions.sql:/docker-entrypoint-initdb.d/02-fitmanager_permissions.sql:ro
+      - ./docker/init-users.sh:/docker-entrypoint-initdb.d/03-init-users.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

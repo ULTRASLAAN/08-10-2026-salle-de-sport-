@@ -42,11 +42,11 @@ function respondWithError(error: unknown, response: express.Response): void {
 app.post('/api/auth/login', async (request, response) => {
   const profile = profiles[String(request.body?.profile ?? '')];
   const password = request.body?.password;
-  const expectedPassword = profile === 'accueil'
+  const expectedPassword = process.env.APP_PASSWORD || (profile === 'accueil'
     ? process.env.APP_ACCUEIL_PASSWORD
     : profile === 'comptabilite'
       ? process.env.APP_COMPTA_PASSWORD
-      : undefined;
+      : undefined);
 
   if (!profile || typeof password !== 'string' || !expectedPassword || password !== expectedPassword) {
     response.status(401).json({ error: 'Profil ou mot de passe incorrect.' });

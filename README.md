@@ -10,13 +10,11 @@ fonction, procédure, trigger, vues, rôles, privilèges et index.
 
 ## Installation
 
-1. Créer une base PostgreSQL vide nommée `salle_sport`.
-2. Ouvrir Query Tool dans pgAdmin 4.
-3. Exécuter le fichier `projet.sql`.
-4. Vérifier les données et les tests présentés ci-dessous.
+1. Installer Docker Desktop avec Docker Compose.
+2. Depuis le dossier du projet, lancer `docker compose up -d`.
+3. Docker crée la base `salle_sport`, exécute les scripts SQL et applique les mots de passe configurés dans `.env`, puis conserve les données dans un volume.
 
-Le script doit être exécuté avec un compte disposant des droits
-nécessaires à la création des tables, fonctions, vues et rôles.
+pgAdmin n'est pas nécessaire. Pour arrêter le serveur sans supprimer les données, lancer `docker compose down`. Les scripts d'initialisation sont exécutés uniquement lors de la création initiale du volume.
 
 ## 1. Fonction : nombre_reservations_adherent
 
@@ -194,6 +192,7 @@ SELECT COUNT(*) FROM adherents;
 ## Technologies
 
 - PostgreSQL
-- pgAdmin 4
+- Docker Compose
+- pgAdmin 4 (facultatif)
 - SQL et PL/pgSQL
 - Git et GitHub

@@ -5,9 +5,7 @@ FitManager est une application web React/TypeScript avec une API Express connect
 ## Prérequis
 
 - Node.js 20 ou plus récent et npm
-- PostgreSQL démarré, avec la base `salle_sport` déjà créée
-- Le fichier `projet.sql` déjà exécuté dans cette base depuis pgAdmin 4
-- Des comptes PostgreSQL de connexion associés aux rôles `role_accueil` et `role_comptabilite`
+- Docker Desktop avec Docker Compose
 
 ## Installation
 
@@ -16,27 +14,26 @@ Ouvre un terminal PowerShell dans le dossier du projet, puis exécute :
 ```powershell
 Copy-Item .env.example .env
 npm install
+docker compose up -d
 ```
 
-Ouvre ensuite `.env` et renseigne les mots de passe des deux comptes PostgreSQL ainsi que les deux mots de passe de connexion à l'application. Remplace aussi `JWT_SECRET` par une clé aléatoire. Pour en générer une dans PowerShell :
+Au premier démarrage, Docker crée la base `salle_sport`, exécute les scripts SQL, applique aux comptes applicatifs les mots de passe de `.env`, puis conserve les données dans un volume. Il n'est pas nécessaire d'installer PostgreSQL ou d'utiliser pgAdmin. Vérifie que le conteneur est prêt avec :
+
+```powershell
+docker compose ps
+```
+
+Le port hôte utilisé est `5433` pour éviter un conflit avec un PostgreSQL déjà installé sur `5432`. Si `.env` existait déjà, modifie également sa valeur `PG_PORT` en `5433` avant de lancer Docker.
+
+Ouvre ensuite `.env` et renseigne `APP_PASSWORD` avec le mot de passe commun aux profils Accueil et Comptabilité. Remplace aussi `JWT_SECRET` par une clé aléatoire. Pour en générer une dans PowerShell :
 
 ```powershell
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-Les comptes PostgreSQL indiqués par défaut dans `.env.example` sont `utilisateur_accueil` et `utilisateur_compta`, créés par le script SQL du projet. Si tu as changé ces comptes ou leurs mots de passe, reporte ici les valeurs réellement configurées dans PostgreSQL. Le serveur utilise une connexion propre à chaque profil ; il n'utilise pas un compte superutilisateur partagé.
+Les comptes applicatifs `utilisateur_accueil` et `utilisateur_compta` sont initialisés avec les mots de passe indiqués dans `.env`. L'API utilise un compte par profil et ne se connecte pas avec le compte administrateur du conteneur. Change aussi `POSTGRES_PASSWORD` dans `.env` si tu modifies le mot de passe administrateur PostgreSQL ; cette variable ne s'applique qu'à la création initiale du volume.
 
-## Préparer les permissions FitManager
-
-Le script d'origine donne aux rôles métiers des droits volontairement limités. Pour permettre l'affichage des adhérents, cours, abonnements et statistiques, et pour ajouter les opérations ciblées de mise à jour/annulation, une extension SQL additive est fournie dans `sql/fitmanager_permissions.sql`.
-
-Dans pgAdmin 4 :
-
-1. Sélectionne la base `salle_sport` et ouvre **Query Tool** avec le propriétaire de la base (le même compte qui a exécuté `projet.sql`).
-2. Ouvre `sql/fitmanager_permissions.sql` dans VS Code, copie son contenu dans Query Tool, puis exécute-le une seule fois.
-3. Vérifie que l'exécution se termine sans erreur.
-
-Ce script crée uniquement des vues et fonctions `fitmanager_*`, puis accorde des droits précis aux rôles existants. Il ne supprime ni ne renomme aucun objet et ne change pas `projet.sql`.
+Les scripts d'initialisation Docker ne sont exécutés que lorsque le volume de données est vide. Si tu as déjà un volume existant, ils ne réinitialisent ni ne modifient la base. La suppression du volume efface toutes les données.
 
 ### Sécuriser les comptes de démonstration
 
@@ -52,7 +49,7 @@ npm run dev
 
 Ouvre ensuite [http://localhost:5173](http://localhost:5173). Le serveur Express écoute sur le port `4000`; Vite transmet automatiquement les appels `/api` vers ce serveur. Garde le terminal ouvert pendant l'utilisation. `Ctrl+C` arrête les deux serveurs.
 
-Les mots de passe de l'interface sont les valeurs `APP_ACCUEIL_PASSWORD` et `APP_COMPTA_PASSWORD` du fichier `.env`. Les accès PostgreSQL, séparés par profil, sont configurés avec `PG_ACCUEIL_USER`, `PG_ACCUEIL_PASSWORD`, `PG_COMPTA_USER` et `PG_COMPTA_PASSWORD`.
+Le mot de passe de l'interface est configuré par `APP_PASSWORD` dans `.env` et est commun aux profils Accueil et Comptabilité. Les accès PostgreSQL, séparés par profil, sont configurés avec `PG_ACCUEIL_USER`, `PG_ACCUEIL_PASSWORD`, `PG_COMPTA_USER` et `PG_COMPTA_PASSWORD`.
 
 Pour vérifier la compilation de production :
 
@@ -67,4 +64,8 @@ npm run build
 - Les réservations passent par `CALL reserver_cours(...)`. Le trigger existant reste responsable du contrôle de capacité.
 - Les requêtes de recherche et de pagination utilisent des paramètres SQL ; les secrets sont lus depuis `.env`.
 
-Si la connexion échoue, vérifie d'abord que PostgreSQL est démarré, que le nom de base est correct, que `projet.sql` et le script d'extension ont été exécutés, puis que les mots de passe et noms de rôles dans `.env` correspondent aux comptes PostgreSQL.
+Si la connexion échoue, vérifie d'abord `docker compose ps`, puis que `PG_HOST`, `PG_PORT`, `PG_DATABASE` et les comptes dans `.env` correspondent à la configuration. Pour arrêter PostgreSQL sans supprimer les données :
+
+```powershell
+docker compose down
+```
