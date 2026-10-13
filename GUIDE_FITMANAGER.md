@@ -47,7 +47,7 @@ Dans PowerShell, toujours à la racine du projet :
 npm run dev
 ```
 
-Ouvre ensuite [http://localhost:5173](http://localhost:5173). Le serveur Express écoute sur le port `4000`; Vite transmet automatiquement les appels `/api` vers ce serveur. Garde le terminal ouvert pendant l'utilisation. `Ctrl+C` arrête les deux serveurs.
+Ouvre ensuite [http://localhost:5174](http://localhost:5174). Le serveur Express écoute sur le port `4000`; Vite transmet automatiquement les appels `/api` vers ce serveur. Garde le terminal ouvert pendant l'utilisation. `Ctrl+C` arrête les deux serveurs.
 
 Le mot de passe de l'interface est configuré par `APP_PASSWORD` dans `.env` et est commun aux profils Accueil et Comptabilité. Les accès PostgreSQL, séparés par profil, sont configurés avec `PG_ACCUEIL_USER`, `PG_ACCUEIL_PASSWORD`, `PG_COMPTA_USER` et `PG_COMPTA_PASSWORD`.
 

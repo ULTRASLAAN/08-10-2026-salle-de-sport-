@@ -1,6 +1,6 @@
 -- ============================================================
 -- PROJET SQL AVANCE B2 - GESTION D'UNE SALLE DE SPORT
--- PostgreSQL / pgAdmin 4
+-- PostgreSQL / Docker Compose (pgAdmin is optional)
 -- ============================================================
 -- Contenu :
 -- 1. Tables
