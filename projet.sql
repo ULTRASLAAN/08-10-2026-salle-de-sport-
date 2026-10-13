@@ -1,22 +1,3 @@
--- ============================================================
--- PROJET SQL AVANCE B2 - GESTION D'UNE SALLE DE SPORT
--- PostgreSQL / Docker Compose (pgAdmin is optional)
--- ============================================================
--- Contenu :
--- 1. Tables
--- 2. Donnees de test
--- 3. Fonction et procedure
--- 4. Trigger
--- 5. Vues
--- 6. Roles et privileges
--- 7. Index et mesures de performance
--- ============================================================
-
-
--- ============================================================
--- 1. CREATION DES TABLES
--- ============================================================
-
 CREATE TABLE adherents (
     adherent_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
@@ -81,12 +62,7 @@ CREATE TABLE paiements (
 );
 
 
--- ============================================================
--- 2. INSERTION DES DONNEES
--- ============================================================
-
--- 10 020 adherents
-INSERT INTO adherents (
+INSERT INTO adherents (  // 1020 adherents de test
     nom, prenom, email, date_inscription
 )
 SELECT
@@ -118,7 +94,6 @@ SELECT
 FROM adherents;
 
 
--- Cinq cours de demonstration
 INSERT INTO cours (
     nom, coach, date_heure, capacite_max
 )
@@ -135,7 +110,6 @@ VALUES
      TIMESTAMP '2026-10-20 16:00:00', 20);
 
 
--- Cours supplementaires : identifiants 6 a 1000
 INSERT INTO cours (
     nom, coach, date_heure, capacite_max
 )
@@ -153,8 +127,6 @@ SELECT
 FROM generate_series(6, 1000) AS s(i);
 
 
--- Cours special pour tester le trigger
--- Sa capacite est limitee a une place.
 INSERT INTO cours (
     nom, coach, date_heure, capacite_max
 )
@@ -165,9 +137,6 @@ VALUES (
     1
 );
 
-
--- 10 000 reservations initiales
--- 10 reservations par cours pour les cours 1 a 1000.
 INSERT INTO reservations (
     adherent_id,
     cours_id,
@@ -182,8 +151,6 @@ SELECT
     'confirmee'
 FROM generate_series(1, 10000) AS s(i);
 
-
--- Paiements de test
 INSERT INTO paiements (
     abonnement_id,
     montant,
@@ -205,15 +172,9 @@ SELECT
     END
 FROM abonnements;
 
-
--- Actualiser les statistiques
 ANALYZE reservations;
 ANALYZE paiements;
 
-
--- ============================================================
--- 3. FONCTION : NOMBRE DE RESERVATIONS D'UN ADHERENT
--- ============================================================
 
 CREATE OR REPLACE FUNCTION nombre_reservations_adherent(
     p_adherent_id INTEGER
@@ -229,10 +190,6 @@ AS $$
 $$;
 
 
--- ============================================================
--- 4. PROCEDURE : RESERVER UN COURS
--- ============================================================
-
 CREATE OR REPLACE PROCEDURE reserver_cours(
     p_adherent_id INTEGER,
     p_cours_id INTEGER
@@ -240,7 +197,6 @@ CREATE OR REPLACE PROCEDURE reserver_cours(
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    -- Verifier l'existence d'un abonnement actif et valide.
     IF NOT EXISTS (
         SELECT 1
         FROM abonnements
@@ -253,7 +209,6 @@ BEGIN
             p_adherent_id;
     END IF;
 
-    -- Le trigger verifie la capacite du cours.
     INSERT INTO reservations (
         adherent_id, cours_id, statut
     )
@@ -268,10 +223,6 @@ END;
 $$;
 
 
--- ============================================================
--- 5. TRIGGER : EMPECHER LA SURESERVATION
--- ============================================================
-
 CREATE OR REPLACE FUNCTION verifier_capacite_cours()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -281,13 +232,10 @@ DECLARE
     v_nombre INTEGER;
     v_reservation_exclue INTEGER;
 BEGIN
-    -- Une reservation annulee ne consomme pas de place.
     IF NEW.statut <> 'confirmee' THEN
         RETURN NEW;
     END IF;
 
-    -- Verrouiller le cours pour serialiser les reservations
-    -- concurrentes portant sur le meme cours.
     SELECT capacite_max
     INTO v_capacite
     FROM cours
@@ -300,7 +248,6 @@ BEGIN
             NEW.cours_id;
     END IF;
 
-    -- Ne pas compter la ligne elle-meme lors d'une modification.
     IF TG_OP = 'UPDATE' THEN
         v_reservation_exclue := OLD.reservation_id;
     ELSE
@@ -336,30 +283,13 @@ FOR EACH ROW
 EXECUTE FUNCTION verifier_capacite_cours();
 
 
--- ============================================================
--- 6. CREATION DES VUES
--- ============================================================
 
--- Vue destinee au personnel d'accueil
 CREATE VIEW vue_accueil_reservations AS
 SELECT
     r.reservation_id,
-    a.adherent_id,
+    a.adherent_id,Z
     a.nom,
-    a.prenom,
-    c.cours_id,
-    c.nom AS nom_cours,
-    c.date_heure,
-    r.date_reservation,
-    r.statut
-FROM reservations AS r
-JOIN adherents AS a
-    ON a.adherent_id = r.adherent_id
-JOIN cours AS c
-    ON c.cours_id = r.cours_id;
-
-
--- Vue destinee au service comptable
+    a.prenom,S
 CREATE VIEW vue_compta_paiements AS
 SELECT
     p.paiement_id,
@@ -377,11 +307,7 @@ JOIN adherents AS a
     ON a.adherent_id = ab.adherent_id;
 
 
--- ============================================================
--- 7. ROLES ET PRIVILEGES (DCL)
--- ============================================================
 
--- Creation idempotente des roles metiers et des utilisateurs.
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -417,22 +343,20 @@ END;
 $$;
 
 
--- Associer chaque utilisateur a son role metier
 GRANT role_accueil TO utilisateur_accueil;
 GRANT role_comptabilite TO utilisateur_compta;
 
 
--- Acces au schema
+
 GRANT USAGE ON SCHEMA public
 TO role_accueil, role_comptabilite;
 
 
--- Retirer les privileges directs sur les tables et vues.
 REVOKE ALL ON ALL TABLES IN SCHEMA public
 FROM PUBLIC, role_accueil, role_comptabilite;
 
 
--- Accorder uniquement la lecture de chaque vue au bon role.
+
 GRANT SELECT ON vue_accueil_reservations
 TO role_accueil;
 
@@ -440,8 +364,6 @@ GRANT SELECT ON vue_compta_paiements
 TO role_comptabilite;
 
 
--- Donner a la procedure les droits necessaires pour reserver.
--- SECURITY DEFINER : execution avec les droits du proprietaire.
 ALTER PROCEDURE reserver_cours(INTEGER, INTEGER)
     SECURITY DEFINER;
 
@@ -455,7 +377,7 @@ GRANT EXECUTE ON PROCEDURE reserver_cours(INTEGER, INTEGER)
 TO role_accueil;
 
 
--- Fonction de consultation pour le personnel d'accueil.
+
 ALTER FUNCTION nombre_reservations_adherent(INTEGER)
     SECURITY DEFINER;
 
@@ -469,27 +391,19 @@ GRANT EXECUTE ON FUNCTION nombre_reservations_adherent(INTEGER)
 TO role_accueil;
 
 
--- ============================================================
--- 8. MESURES AVANT CREATION DES INDEX
--- ============================================================
 
--- Requete 1 : recherche des reservations d'un cours
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT *
 FROM reservations
 WHERE cours_id = 777;
 
 
--- Requete 2 : recherche des paiements par date
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT *
 FROM paiements
 WHERE date_paiement = DATE '2026-01-01';
 
 
--- ============================================================
--- 9. CREATION DES DEUX INDEX
--- ============================================================
 
 CREATE INDEX idx_reservations_cours
 ON reservations(cours_id);
@@ -501,11 +415,6 @@ ANALYZE reservations;
 ANALYZE paiements;
 
 
--- ============================================================
--- 10. MESURES APRES CREATION DES INDEX
--- ============================================================
-
--- Comparer Execution Time, Buffers et le plan utilise.
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT *
 FROM reservations
@@ -517,14 +426,3 @@ SELECT *
 FROM paiements
 WHERE date_paiement = DATE '2026-01-01';
 
-
--- ============================================================
--- FIN DU SCRIPT
--- ============================================================
-
--- Verifications :
--- SELECT COUNT(*) FROM adherents;       -- 10020
--- SELECT COUNT(*) FROM cours;           -- 1001
--- SELECT COUNT(*) FROM reservations;    -- 10000
--- SELECT COUNT(*) FROM paiements;       -- 10020
--- SELECT nombre_reservations_adherent(1);
